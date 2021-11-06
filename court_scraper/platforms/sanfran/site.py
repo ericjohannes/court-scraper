@@ -38,23 +38,62 @@ class Site(SeleniumSite):
             return None
        
 
-    def search(self, case_numbers=[]) -> List[CaseInfo]:
+    def search(self, case_numbers=[], manualcaptcha=False) -> List[CaseInfo]:
         case_numbers = ['CUD97142814']
+        endpoints = [
+            {
+                'name': 'register of actions',
+                'endpoint': 'GetROA',
+            },
+            {
+                'name': 'parties',
+                'endpont': 'GetParties',
+            },
+            {
+                'name': 'attorneys',
+                'endpont': 'GetAttorneys',
+            },
+            {
+                'name': 'calendar',
+                'endpont': 'GetCalendar',
+            },
+            {
+                'name': 'payments',
+                'endpont': 'GetPayments',
+            },
+        ]
         for cn in case_numbers:
-            roa_url = f'https://webapps.sftc.org/ci/CaseInfo.dll/datasnap/rest/TServerMethods1/GetROA/{cn}/{self.sessionid}/' # register of actions
-            parties_url = f'https://webapps.sftc.org/ci/CaseInfo.dll/datasnap/rest/TServerMethods1/GetParties/{cn}/{self.sessionid}/' # parties
-            attorneys_url =f'https://webapps.sftc.org/ci/CaseInfo.dll/datasnap/rest/TServerMethods1/GetAttorneys/{cn}/{self.sessionid}/' # attorneys
-            calendar_url = f'https://webapps.sftc.org/ci/CaseInfo.dll/datasnap/rest/TServerMethods1/GetCalendar/{cn}/{self.sessionid}/' # calendar
-            payments_url = f'https://webapps.sftc.org/ci/CaseInfo.dll/datasnap/rest/TServerMethods1/GetPayments/{cn}/{self.sessionid}/' #payments
-
-
+            case_data = {
+                'main': None,
+                'register of actions': None,
+                'parties': None,
+                'attorneys': None,
+                'calendar': None,
+                'payments': None,
+            }
             params = {
                 'CaseNum': cn,
                 'SessionID': self.sessionid
 
             }
+            # get main page
             r = requests.get(self.url, params=params)
-            
+            # todo: see what happens if you have an expired session when you do this
+            # todo: see what html that you get back is like and figure out how to parse it
+            for i in len(endpoints):
+                ep = endpoints[i]
+                ep_url = f'https://webapps.sftc.org/ci/CaseInfo.dll/datasnap/rest/TServerMethods1/GetROA/{ep['endpont']}/{self.sessionid}/' 
+                r = requests.get(ep_url)
+                data = r.json()
+                new_data = json.loads(data['result'][1])
+                if new_data is "": # session id expired, get a new one and try again
+                    self.sessionid = self.__get_sessionid(headless=~manualcaptcha)
+                    continue
+                else:
+                    case_data[ep['name']] = new_data
+                    i += 1 # move onto next endpoint
+
+
         # Perform a place-specific search (using self.place_id)
         # for one or more case numbers.
         # Return a list of CaseInfo instances containing case metadata and,
