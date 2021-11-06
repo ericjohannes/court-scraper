@@ -12,3 +12,6 @@ docs/_build/
 htmlcov
 .court-scraper/
 .env
+
+scratch.py
+.vscode/*
