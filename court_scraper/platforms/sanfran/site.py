@@ -3,6 +3,7 @@
 import json
 import requests
 from typing import List
+from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 from urllib.parse import parse_qs
 from selenium.webdriver.common.by import By
@@ -28,10 +29,10 @@ class Site(SeleniumSite):
         self.driver = self._init_chrome_driver(headless=False)
         url = self.driver.get(self.url)
         # wait until captcha is broken and search form loads
-        delay = 3 # seconds
+        delay = 60 # seconds
         try:
             myElem = WebDriverWait(self.driver, delay).until(EC.presence_of_element_located((By.ID, 'NumberSearch')))
-            parsed_url = urlparse(url)
+            parsed_url = urlparse(self.driver.current_url)
             return parse_qs(parsed_url.query)['SessionID'][0]
         except TimeoutException:
             print("Loading took too much time!")
@@ -39,7 +40,7 @@ class Site(SeleniumSite):
        
 
     def search(self, case_numbers=[], manualcaptcha=False) -> List[CaseInfo]:
-        case_numbers = ['CUD97142814']
+        cases = []
         endpoints = [
             {
                 'name': 'register of actions',
@@ -79,10 +80,42 @@ class Site(SeleniumSite):
             # get main page
             r = requests.get(self.url, params=params)
             # todo: see what happens if you have an expired session when you do this
-            # todo: see what html that you get back is like and figure out how to parse it
-            for i in len(endpoints):
+            self._soup = BeautifulSoup(r.text, 'html.parser')
+            font_elems = list(self._soup.find_all('font'))
+            text_of_fonts = []
+            main_data = {'case_number': cn}
+            '''
+            these font elements have a pattern like
+            "Case Number:\n"
+            <case number>
+            'Title:\n'
+            <case title>
+            'Cause of Action:\n'
+            <cause of action>
+            <junk>
+            <junk>
+            etc.
+
+            this methods works off the expectation that indexofkey + 1 == indexofvalue
+            '''
+            for fe in font_elems:
+                text_of_fonts.append(fe.text)
+            
+            # try to get these values, if the key isn't in the html then it will skip getting the value too
+            try:
+                title_i = text_of_fonts.index('Title:\n') + 1
+                main_data.update({'case_title': text_of_fonts[title_i] })
+            except:
+                pass # maybe there was no title in the data?
+            try: 
+                cause_i = text_of_fonts.index('Cause of Action:\n') + 1
+                main_data.update({'cause_of_action': text_of_fonts[cause_i] })
+            except:
+                pass # not there I guess
+            case_data['main'] = main_data
+            for i in range(len(endpoints)):
                 ep = endpoints[i]
-                ep_url = f'https://webapps.sftc.org/ci/CaseInfo.dll/datasnap/rest/TServerMethods1/GetROA/{ep['endpont']}/{self.sessionid}/' 
+                ep_url = f"https://webapps.sftc.org/ci/CaseInfo.dll/datasnap/rest/TServerMethods1/GetROA/{ep['endpoint']}/{self.sessionid}/"
                 r = requests.get(ep_url)
                 data = r.json()
                 new_data = json.loads(data['result'][1])
@@ -93,12 +126,12 @@ class Site(SeleniumSite):
                     case_data[ep['name']] = new_data
                     i += 1 # move onto next endpoint
 
-
+            cases.append(case_data)
         # Perform a place-specific search (using self.place_id)
         # for one or more case numbers.
         # Return a list of CaseInfo instances containing case metadata and,
         # if available, HTML for case detail page
-        pass
+        return cases
 
     def search_by_date(self, filing_date=None) -> List[CaseInfo]:
         # Perform a place-specific, date-based search.
