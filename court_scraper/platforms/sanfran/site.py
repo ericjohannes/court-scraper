@@ -116,7 +116,7 @@ class Site(SeleniumSite):
 
             for i in range(len(endpoints)):
                 ep = endpoints[i]
-                ep_url = f"https://webapps.sftc.org/ci/CaseInfo.dll/datasnap/rest/TServerMethods1/{ep['endpoint']}/{self.sessionid}/"
+                ep_url = f"https://webapps.sftc.org/ci/CaseInfo.dll/datasnap/rest/TServerMethods1/{ep['endpoint']}/{cn}/{self.sessionid}/"
                 r = requests.get(ep_url)
                 data = r.json()
                 try:
