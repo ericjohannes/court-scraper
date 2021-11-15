@@ -22,10 +22,15 @@ class Site(SeleniumSite):
     def __init__(self, place_id, manualcaptcha=False):
         self.place_id = place_id
         self.url = "https://webapps.sftc.org/ci/CaseInfo.dll"
+        self.retries = 5 # limit number of times it can try to get a session id
         self.download_dir = self.get_download_dir()
         self.sessionid = self.__get_sessionid(headless=not manualcaptcha)
 
     def __get_sessionid(self, headless=True):
+        if self.retries < 0:
+            print('tried to make a session too many times')
+            exit()
+        self.retries -= 1
         self.driver = self._init_chrome_driver(headless=False)
         url = self.driver.get(self.url)
         # wait until captcha is broken and search form loads
@@ -120,15 +125,16 @@ class Site(SeleniumSite):
                 r = requests.get(ep_url)
                 data = r.json()
                 try:
+                    # todo: result[0] is 0 if there are no records of that type, make use of that flag to make this try except more elegant???
                     new_data = json.loads(data['result'][1])
                 except ValueError: # if there is othing in the register of actions it returns a string rather than a jsonable string
                     new_data = str(data['result'][1])
                 if new_data is "": # session id expired, get a new one and try again
                     self.sessionid = self.__get_sessionid(headless=not manualcaptcha)
+                    i -= 1
                     continue
                 else:
                     case_data[ep['name']] = new_data
-                    i += 1 # move onto next endpoint
 
             cases.append(case_data)
         # Perform a place-specific search (using self.place_id)
