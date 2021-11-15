@@ -23,7 +23,7 @@ class Site(SeleniumSite):
         self.place_id = place_id
         self.url = "https://webapps.sftc.org/ci/CaseInfo.dll"
         self.download_dir = self.get_download_dir()
-        self.sessionid = self.__get_sessionid(headless=~manualcaptcha)
+        self.sessionid = self.__get_sessionid(headless=not manualcaptcha)
 
     def __get_sessionid(self, headless=True):
         self.driver = self._init_chrome_driver(headless=False)
@@ -48,19 +48,19 @@ class Site(SeleniumSite):
             },
             {
                 'name': 'parties',
-                'endpont': 'GetParties',
+                'endpoint': 'GetParties',
             },
             {
                 'name': 'attorneys',
-                'endpont': 'GetAttorneys',
+                'endpoint': 'GetAttorneys',
             },
             {
                 'name': 'calendar',
-                'endpont': 'GetCalendar',
+                'endpoint': 'GetCalendar',
             },
             {
                 'name': 'payments',
-                'endpont': 'GetPayments',
+                'endpoint': 'GetPayments',
             },
         ]
         for cn in case_numbers:
@@ -96,7 +96,7 @@ class Site(SeleniumSite):
             <junk>
             etc.
 
-            this methods works off the expectation that indexofkey + 1 == indexofvalue
+            so this methods works off the expectation that indexofkey + 1 == indexofvalue
             '''
             for fe in font_elems:
                 text_of_fonts.append(fe.text)
@@ -113,14 +113,18 @@ class Site(SeleniumSite):
             except:
                 pass # not there I guess
             case_data['main'] = main_data
+
             for i in range(len(endpoints)):
                 ep = endpoints[i]
-                ep_url = f"https://webapps.sftc.org/ci/CaseInfo.dll/datasnap/rest/TServerMethods1/GetROA/{ep['endpoint']}/{self.sessionid}/"
+                ep_url = f"https://webapps.sftc.org/ci/CaseInfo.dll/datasnap/rest/TServerMethods1/{ep['endpoint']}/{self.sessionid}/"
                 r = requests.get(ep_url)
                 data = r.json()
-                new_data = json.loads(data['result'][1])
+                try:
+                    new_data = json.loads(data['result'][1])
+                except ValueError: # if there is othing in the register of actions it returns a string rather than a jsonable string
+                    new_data = str(data['result'][1])
                 if new_data is "": # session id expired, get a new one and try again
-                    self.sessionid = self.__get_sessionid(headless=~manualcaptcha)
+                    self.sessionid = self.__get_sessionid(headless=not manualcaptcha)
                     continue
                 else:
                     case_data[ep['name']] = new_data
