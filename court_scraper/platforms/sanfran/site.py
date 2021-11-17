@@ -6,6 +6,7 @@ from typing import List
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 from urllib.parse import parse_qs
+
 from selenium.webdriver.common.by import By
 from court_scraper.case_info import CaseInfo
 from selenium.webdriver.support.ui import WebDriverWait
@@ -45,6 +46,10 @@ class Site(SeleniumSite):
        
 
     def search(self, case_numbers=[], manualcaptcha=False) -> List[CaseInfo]:
+        # Perform a place-specific search (using self.place_id)
+        # for one or more case numbers.
+        # Return a list of CaseInfo instances containing case metadata and,
+        # if available, HTML for case detail page
         cases = []
         endpoints = [
             {
@@ -88,7 +93,7 @@ class Site(SeleniumSite):
             self._soup = BeautifulSoup(r.text, 'html.parser')
             font_elems = list(self._soup.find_all('font'))
             text_of_fonts = []
-            main_data = {'case_number': cn}
+            case_data.update({'number': cn, 'place_id': self.place_id, 'html': r.text})
             '''
             these font elements have a pattern like
             "Case Number:\n"
@@ -109,15 +114,14 @@ class Site(SeleniumSite):
             # try to get these values, if the key isn't in the html then it will skip getting the value too
             try:
                 title_i = text_of_fonts.index('Title:\n') + 1
-                main_data.update({'case_title': text_of_fonts[title_i] })
+                case_data.update({'case_title': text_of_fonts[title_i] })
             except:
                 pass # maybe there was no title in the data?
             try: 
                 cause_i = text_of_fonts.index('Cause of Action:\n') + 1
-                main_data.update({'cause_of_action': text_of_fonts[cause_i] })
+                case_data.update({'cause_of_action': text_of_fonts[cause_i] })
             except:
                 pass # not there I guess
-            case_data['main'] = main_data
 
             for i in range(len(endpoints)):
                 ep = endpoints[i]
@@ -135,12 +139,9 @@ class Site(SeleniumSite):
                     continue
                 else:
                     case_data[ep['name']] = new_data
+            case_info = CaseInfo(case_data)
+            cases.append(case_info)
 
-            cases.append(case_data)
-        # Perform a place-specific search (using self.place_id)
-        # for one or more case numbers.
-        # Return a list of CaseInfo instances containing case metadata and,
-        # if available, HTML for case detail page
         return cases
 
     def search_by_date(self, filing_date=None) -> List[CaseInfo]:
