@@ -169,7 +169,7 @@ class Site(SeleniumSite):
             for c in raw_cases:
                 soup = BeautifulSoup(c['CASE_NUMBER'], 'html.parser')
                 case_number = soup.find('a').text
-                case_info = CaseInfo({'number': case_number, 'place_id': self.place_id, 'case_title': c['CASE_TITLE']})
+                case_info = CaseInfo({'number': case_number, 'place_id': self.place_id, 'case_title': c['CASE_TITLE'], 'filing_date': filing_date})
                 cases.append(case_info)
         if case_details:
             # todo get more info on cases more elegantly
