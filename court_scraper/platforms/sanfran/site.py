@@ -3,10 +3,10 @@
 import json
 import requests
 from typing import List
+from datetime import datetime
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 from urllib.parse import parse_qs
-
 from selenium.webdriver.common.by import By
 from court_scraper.case_info import CaseInfo
 from selenium.webdriver.support.ui import WebDriverWait
@@ -144,14 +144,37 @@ class Site(SeleniumSite):
 
         return cases
 
-    def search_by_date(self, filing_date=None) -> List[CaseInfo]:
+    def search_by_date(self, filing_date=None, case_details=False, manualcaptcha=False) -> List[CaseInfo]:
         # Perform a place-specific, date-based search.
         # Defaut to current day if start_date and end_date not supplied.
         # Only scrape case metadata from search results pages by default.
         # If case_details set to True, scrape detailed case info
         # Apply case type filter if supported by site.
         # Return a list of CaseInfo instances
-        pass
+        if filing_date is None:
+            filing_date = datetime.today().strftime('%Y-%m-%d')
+        
+        endpoint = f"{self.url}/datasnap/rest/TServerMethods1/GetCasesWithFilings/{filing_date}/{self.sessionid}/"
+        r = requests.get(endpoint)
+        data = r.json()
+        if data[0] is -1: # no session id or it's expired
+            self.sessionid = self.__get_sessionid(headless=not manualcaptcha)
+            r = requests.get(endpoint) # try again
+            data = r.json()
+        elif data[0] is 0:
+            return None # no records
+        else: # there's data
+            raw_cases = json.loads(data['result'][1])
+            cases = []
+            for c in raw_cases:
+                soup = BeautifulSoup(c['CASE_NUMBER'], 'html.parser')
+                case_number = soup.find('a').text
+                case_info = CaseInfo({'number': case_number, 'place_id': self.place_id, 'case_title': c['CASE_TITLE']})
+                cases.append(case_info)
+        if case_details:
+            # todo get more info on cases more elegantly
+            cases = self.search([c.number for c in cases], manualcaptcha=manualcaptcha)
+        return cases
 
     def search_by_name(self, name) -> List[CaseInfo]:
         # search by a name
