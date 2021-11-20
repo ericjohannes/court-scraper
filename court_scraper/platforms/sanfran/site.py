@@ -39,7 +39,9 @@ class Site(SeleniumSite):
         try:
             myElem = WebDriverWait(self.driver, delay).until(EC.presence_of_element_located((By.ID, 'NumberSearch')))
             parsed_url = urlparse(self.driver.current_url)
-            return parse_qs(parsed_url.query)['SessionID'][0]
+            sessionid = parse_qs(parsed_url.query)['SessionID'][0]
+            self.driver.quit()
+            return sessionid
         except TimeoutException:
             print("Loading took too much time!")
             return None
