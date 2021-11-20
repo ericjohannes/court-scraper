@@ -20,7 +20,6 @@ class CaseDetailParser:
             soup = BeautifulSoup(self.html, 'html.parser')
 
             font_elems = list(soup.find_all('font'))
-            text_of_fonts = []
             '''
             these font elements have a pattern like
             "Case Number:\n"
@@ -44,7 +43,7 @@ class CaseDetailParser:
     
     @property
     def _case_title(self, fe_list):
-        # try to get these values, if the key isn't in the html then it will skip getting the value too
+        # if the key isn't in the html then it will skip getting the value too
         try:
             title_i = fe_list.index('Title:\n') + 1
             return fe_list[title_i]
@@ -53,6 +52,7 @@ class CaseDetailParser:
     
     @property
     def _cause_of_action(self, fe_list):
+        # the key isn't in the html then it will skip getting the value too
         try: 
             cause_i = fe_list.index('Cause of Action:\n') + 1
             return fe_list[cause_i]
