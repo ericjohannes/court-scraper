@@ -8,13 +8,14 @@ from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 from urllib.parse import parse_qs
 from selenium.webdriver.common.by import By
-from court_scraper.case_info import CaseInfo
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException
-from court_scraper.base.selenium_site import SeleniumSite
-from court_scraper.utils import get_captcha_service_api_key
 from selenium.webdriver.support import expected_conditions as EC
 
+from court_scraper.case_info import CaseInfo
+from .pages.case_number_lookup import CaseNumberLookup
+from court_scraper.base.selenium_site import SeleniumSite
+from court_scraper.utils import get_captcha_service_api_key
 # note:
 # what a expired session response looks like `{"result":[-1,""]}`
 
