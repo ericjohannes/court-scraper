@@ -10,10 +10,10 @@ class EndpointDetailPage:
     @property
     def data(self):
         r = requests.get(self.url)
-        data = r.json()
+        data = r.json()['result']
         if data[0] is -1: # permission denied, session id probably expired
             return {self.name: None }
         elif data[0] is 0: # are none of this type of record so returna  string that says so
-            return {self.name: str(data['result'][1])}
+            return {self.name: str(data[1])}
         else: # there is data
-            return {self.name: json.loads(data['result'][1])}
+            return {self.name: json.loads(data[1])}

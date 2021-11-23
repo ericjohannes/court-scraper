@@ -12,7 +12,7 @@ class CaseNumberLookup:
     def search(self, case_numbers=[], details=False):
         results = []
         for cn in case_numbers:
-            page = CaseDetailPage(self.place_id, cn)
+            page = CaseDetailPage(self.place_id, cn, self.session_id)
             data = {'place_id': self.place_id}
             data.update(page.data)
             if details:
@@ -20,6 +20,7 @@ class CaseNumberLookup:
                     ep_page = EndpointDetailPage(cn, ep, self.session_id)
                     data.update(ep_page.data)
             case = CaseInfo(data)
+            # todo: check if this is rgith? this takes an like "data" and adds a key 'data' that is the value of the original 'data', ie data.data now == original data, and other key values of data are still there too
             results.append(case)
         return results
     

@@ -54,7 +54,7 @@ class Site(SeleniumSite):
         # for one or more case numbers.
         # Return a list of CaseInfo instances containing case metadata and,
         # if available, HTML for case detail page
-        lookup = CaseNumberLookup(self.place_id)       
+        lookup = CaseNumberLookup(self.place_id, self.sessionid)       
         cases = lookup.search(case_numbers=case_numbers, details=details)
 
         return cases

@@ -6,6 +6,7 @@ class CaseDetailParser:
         self.html = html
     
     def parse(self):
+        fe_list = self._font_element_list
         payload = {
             'case_title': self._case_title(self._font_element_list),
             'cause_of_action': self._cause_of_action(self._font_element_list),
@@ -13,7 +14,7 @@ class CaseDetailParser:
         return payload
 
     @property
-    def _font_element_list(self, html):
+    def _font_element_list(self):
         try:
             return self._fe_list
         except AttributeError:
@@ -34,14 +35,13 @@ class CaseDetailParser:
 
             so this methods works off the expectation that indexofkey + 1 == indexofvalue
             '''
-            font_elems = self._soup.find_all('font')
+            font_elems = soup.find_all('font')
             text_of_fonts = []
             for fe in font_elems:
                 text_of_fonts.append(fe.text)
             self._fe_list = text_of_fonts
             return text_of_fonts
     
-    @property
     def _case_title(self, fe_list):
         # if the key isn't in the html then it will skip getting the value too
         try:
@@ -50,7 +50,6 @@ class CaseDetailParser:
         except:
             return None # maybe there was no title in the data?
     
-    @property
     def _cause_of_action(self, fe_list):
         # the key isn't in the html then it will skip getting the value too
         try: 
