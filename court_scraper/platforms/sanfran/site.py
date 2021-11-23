@@ -21,12 +21,13 @@ from court_scraper.utils import get_captcha_service_api_key
 
 class Site(SeleniumSite):
 
-    def __init__(self, place_id, manualcaptcha=False):
+    def __init__(self, place_id, manual_captcha=False):
         self.place_id = place_id
         self.url = "https://webapps.sftc.org/ci/CaseInfo.dll"
         self.retries = 5 # limit number of times it can try to get a session id
         self.download_dir = self.get_download_dir()
-        self.sessionid = self.__get_sessionid(headless=not manualcaptcha)
+        self.manual_captcha = manual_captcha
+        self.sessionid = self.__get_sessionid(headless=not self.manual_captcha)
 
     def __get_sessionid(self, headless=True):
         if self.retries < 0:
@@ -48,7 +49,7 @@ class Site(SeleniumSite):
             return None
        
 
-    def search(self, case_numbers=[], manualcaptcha=False, details=False) -> List[CaseInfo]:
+    def search(self, case_numbers=[], details=False) -> List[CaseInfo]:
         # Perform a place-specific search (using self.place_id)
         # for one or more case numbers.
         # Return a list of CaseInfo instances containing case metadata and,
@@ -58,7 +59,7 @@ class Site(SeleniumSite):
 
         return cases
 
-    def search_by_date(self, filing_date=None, case_details=False, manualcaptcha=False) -> List[CaseInfo]:
+    def search_by_date(self, filing_date=None, case_details=False, manual_captcha=False) -> List[CaseInfo]:
         # Perform a place-specific, date-based search.
         # Defaut to current day if start_date and end_date not supplied.
         # Only scrape case metadata from search results pages by default.
@@ -72,7 +73,7 @@ class Site(SeleniumSite):
         r = requests.get(endpoint)
         data = r.json()
         if data[0] is -1: # no session id or it's expired
-            self.sessionid = self.__get_sessionid(headless=not manualcaptcha)
+            self.sessionid = self.__get_sessionid(headless=not manual_captcha)
             r = requests.get(endpoint) # try again
             data = r.json()
         elif data[0] is 0:
@@ -87,7 +88,7 @@ class Site(SeleniumSite):
                 cases.append(case_info)
         if case_details:
             # todo get more info on cases more elegantly
-            cases = self.search([c.number for c in cases], manualcaptcha=manualcaptcha)
+            cases = self.search([c.number for c in cases], manual_captcha=manual_captcha)
         return cases
 
     def search_by_name(self, name) -> List[CaseInfo]:

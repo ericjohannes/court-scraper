@@ -21,6 +21,7 @@ class CaseNumberLookup:
                     data.update(ep_page.data)
             case = CaseInfo(data)
             results.append(case)
+        return results
     
     @property
     def endpoints(self):
