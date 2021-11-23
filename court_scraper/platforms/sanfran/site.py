@@ -36,9 +36,9 @@ class Site(SeleniumSite):
         self.driver = self._init_chrome_driver(headless=False)
         url = self.driver.get(self.url)
         # wait until captcha is broken and search form loads
-        delay = 60 # seconds
+        delay = 60 # seconds to break captcha
         try:
-            myElem = WebDriverWait(self.driver, delay).until(EC.presence_of_element_located((By.ID, 'NumberSearch')))
+            myElem = WebDriverWait(self.driver, delay).until(EC.presence_of_element_located((By.ID, 'NumberSearch'))) # execution waits until page loads
             parsed_url = urlparse(self.driver.current_url)
             sessionid = parse_qs(parsed_url.query)['SessionID'][0]
             self.driver.quit()
@@ -53,53 +53,8 @@ class Site(SeleniumSite):
         # for one or more case numbers.
         # Return a list of CaseInfo instances containing case metadata and,
         # if available, HTML for case detail page
-        lookup = CaseNumberLookup(self.place_id)
-        cases = []
-        endpoints = [
-            {
-                'name': 'register of actions',
-                'endpoint': 'GetROA',
-            },
-            {
-                'name': 'parties',
-                'endpoint': 'GetParties',
-            },
-            {
-                'name': 'attorneys',
-                'endpoint': 'GetAttorneys',
-            },
-            {
-                'name': 'calendar',
-                'endpoint': 'GetCalendar',
-            },
-            {
-                'name': 'payments',
-                'endpoint': 'GetPayments',
-            },
-        ]
+        lookup = CaseNumberLookup(self.place_id)       
         cases = lookup.search(case_numbers=case_numbers, details=details)
-
-        for c in cases:
-            
-            cn = c['case_number']
-            for i in range(len(endpoints)):
-                ep = endpoints[i]
-                ep_url = f"https://webapps.sftc.org/ci/CaseInfo.dll/datasnap/rest/TServerMethods1/{ep['endpoint']}/{cn}/{self.sessionid}/"
-                r = requests.get(ep_url)
-                data = r.json()
-                try:
-                    # todo: result[0] is 0 if there are no records of that type, make use of that flag to make this try except more elegant???
-                    new_data = json.loads(data['result'][1])
-                except ValueError: # if there is othing in the register of actions it returns a string rather than a jsonable string
-                    new_data = str(data['result'][1])
-                if new_data is "": # session id expired, get a new one and try again
-                    self.sessionid = self.__get_sessionid(headless=not manualcaptcha)
-                    i -= 1
-                    continue
-                else:
-                    c[ep['name']] = new_data
-            case_info = CaseInfo(case_data)
-            cases.append(case_info)
 
         return cases
 

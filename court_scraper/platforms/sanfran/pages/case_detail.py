@@ -36,9 +36,3 @@ class CaseDetailPage:
             _html = response.text
             self._output = _html
             return _html
-
-    
-    @property
-    def details(self):
-        for ep in self.endpoints:
-
