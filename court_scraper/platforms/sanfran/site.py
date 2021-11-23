@@ -48,11 +48,12 @@ class Site(SeleniumSite):
             return None
        
 
-    def search(self, case_numbers=[], manualcaptcha=False) -> List[CaseInfo]:
+    def search(self, case_numbers=[], manualcaptcha=False, details=False) -> List[CaseInfo]:
         # Perform a place-specific search (using self.place_id)
         # for one or more case numbers.
         # Return a list of CaseInfo instances containing case metadata and,
         # if available, HTML for case detail page
+        lookup = CaseNumberLookup(self.place_id)
         cases = []
         endpoints = [
             {
@@ -76,56 +77,11 @@ class Site(SeleniumSite):
                 'endpoint': 'GetPayments',
             },
         ]
-        for cn in case_numbers:
-            case_data = {
-                'main': None,
-                'register of actions': None,
-                'parties': None,
-                'attorneys': None,
-                'calendar': None,
-                'payments': None,
-            }
-            params = {
-                'CaseNum': cn,
-                'SessionID': self.sessionid
+        cases = lookup.search(case_numbers=case_numbers, details=details)
 
-            }
-            # get main page
-            r = requests.get(self.url, params=params)
-            # todo: see what happens if you have an expired session when you do this
-            self._soup = BeautifulSoup(r.text, 'html.parser')
-            font_elems = list(self._soup.find_all('font'))
-            text_of_fonts = []
-            case_data.update({'number': cn, 'place_id': self.place_id, 'html': r.text})
-            '''
-            these font elements have a pattern like
-            "Case Number:\n"
-            <case number>
-            'Title:\n'
-            <case title>
-            'Cause of Action:\n'
-            <cause of action>
-            <junk>
-            <junk>
-            etc.
-
-            so this methods works off the expectation that indexofkey + 1 == indexofvalue
-            '''
-            for fe in font_elems:
-                text_of_fonts.append(fe.text)
+        for c in cases:
             
-            # try to get these values, if the key isn't in the html then it will skip getting the value too
-            try:
-                title_i = text_of_fonts.index('Title:\n') + 1
-                case_data.update({'case_title': text_of_fonts[title_i] })
-            except:
-                pass # maybe there was no title in the data?
-            try: 
-                cause_i = text_of_fonts.index('Cause of Action:\n') + 1
-                case_data.update({'cause_of_action': text_of_fonts[cause_i] })
-            except:
-                pass # not there I guess
-
+            cn = c['case_number']
             for i in range(len(endpoints)):
                 ep = endpoints[i]
                 ep_url = f"https://webapps.sftc.org/ci/CaseInfo.dll/datasnap/rest/TServerMethods1/{ep['endpoint']}/{cn}/{self.sessionid}/"
@@ -141,7 +97,7 @@ class Site(SeleniumSite):
                     i -= 1
                     continue
                 else:
-                    case_data[ep['name']] = new_data
+                    c[ep['name']] = new_data
             case_info = CaseInfo(case_data)
             cases.append(case_info)
 

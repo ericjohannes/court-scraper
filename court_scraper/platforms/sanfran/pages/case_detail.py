@@ -4,11 +4,13 @@ from ..parsers.case_detail import CaseDetailParser
 
 class CaseDetailPage:
 
-    def __init__(self, place_id, case_number, parser_kls=CaseDetailParser):
+    def __init__(self, place_id, case_number, session_id, parser_kls=CaseDetailParser):
         self.url = "https://webapps.sftc.org/ci/CaseInfo.dll"
         self.place_id = place_id
         self.case_number = case_number
+        self.session_id = session_id
         self.parser_kls = parser_kls
+
     
     @property
     def data(self):
@@ -34,3 +36,9 @@ class CaseDetailPage:
             _html = response.text
             self._output = _html
             return _html
+
+    
+    @property
+    def details(self):
+        for ep in self.endpoints:
+
