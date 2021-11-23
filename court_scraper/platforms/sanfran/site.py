@@ -18,7 +18,8 @@ from court_scraper.base.selenium_site import SeleniumSite
 from court_scraper.utils import get_captcha_service_api_key
 # note:
 # what a expired session response looks like `{"result":[-1,""]}`
-
+# todo:
+# add a method of site that makes requests and gets a new session id based on some results and updates session id of the site if it needs to
 class Site(SeleniumSite):
 
     def __init__(self, place_id, manual_captcha=False):
